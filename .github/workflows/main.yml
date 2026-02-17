@@ -64,15 +64,12 @@ jobs:
           aws configure set default.sts_regional_endpoints regional
           aws configure set default.region ${{ env.AWS_REGION }}
 
-      - name: upload image to ECR
-        uses: appleboy/docker-ecr-action@master
-        with:
-          access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          registry: ${{ secrets.REGISTRY }}
-          repo: ${{ env.ECR_REPOSITORY }}
-          region: ${{ env.AWS_REGION }}
-          tags: latest,${{ github.run_number }}
-          daemon_off: false
-          dockerfile: ./Dockerfile
-          context: ./
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.REGISTRY }}
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t ${{ secrets.REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.run_number }} -t ${{ secrets.REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest .
+          docker push ${{ secrets.REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.run_number }}
+          docker push ${{ secrets.REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
