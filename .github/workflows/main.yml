@@ -73,3 +73,27 @@ jobs:
           docker build -t ${{ secrets.REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.run_number }} -t ${{ secrets.REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest .
           docker push ${{ secrets.REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.run_number }}
           docker push ${{ secrets.REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
+
+  DeployToEKS:
+    needs: Build_and_publish_image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS CLI for Sovereign Cloud
+        run: |
+          aws configure set default.sts_regional_endpoints regional
+          aws configure set default.region ${{ env.AWS_REGION }}
+
+      - name: Get Kube config file
+        run: aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER }}
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install vprofileapp ./helm/vprofilecharts \
+            --namespace default \
+            --set appimage=${{ secrets.REGISTRY }}/${{ env.ECR_REPOSITORY }} \
+            --set apptag=${{ github.run_number }} \
+            --force
+        
