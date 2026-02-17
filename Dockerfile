@@ -1,9 +1,9 @@
-FROM openjdk:11-jdk-slim AS build_image
+FROM eclipse-temurin:11 AS build_image
 RUN apt update && apt install maven -y
 COPY ./ vprofile-project
 RUN cd vprofile-project &&  mvn install 
 
-FROM tomcat:9-jre11-slim
+FROM tomcat:9.0-jre11-temurin
 LABEL "Project"="Vprofile"
 LABEL "Author"="Imran"
 RUN rm -rf /usr/local/tomcat/webapps/*
